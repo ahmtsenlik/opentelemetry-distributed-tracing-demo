@@ -1,5 +1,7 @@
+using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,7 +22,23 @@ builder.Services.AddOpenTelemetryTracing((b) =>
     b.AddAspNetCoreInstrumentation();
     b.AddHttpClientInstrumentation();
     b.AddConsoleExporter();
-    b.AddJaegerExporter();
+    b.AddJaegerExporter(opt =>
+    {
+        //Varsayýlan deðer ExportProcessorType.Batch
+        //Diðer seçenek ExportProcessorType.Simple
+        opt.ExportProcessorType = ExportProcessorType.Batch;
+        opt.BatchExportProcessorOptions = new BatchExportProcessorOptions<Activity>()
+        {
+            //Maksimum kuyruk boyutu, sýnýra ulaþtýðýnda veri býrakýlýr
+            MaxQueueSize = 2048,
+            //Ýki veri arasýndaki geçikme süresi
+            ScheduledDelayMilliseconds = 5000,
+            //Export iþleminin zaman aþýmý süresi
+            ExporterTimeoutMilliseconds = 30000,
+            //Her export iþleminin maksimum boyutu
+            MaxExportBatchSize = 512,
+        };
+    });
 });
 var app = builder.Build();
 
